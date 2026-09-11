@@ -16,7 +16,7 @@ This talks to Garmin through the unofficial [garminconnect](https://github.com/c
 ## Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/garmin-shoe-sync.git
+git clone https://github.com/thesloth028/garmin-shoe-sync.git
 cd garmin-shoe-sync
 
 python3 -m venv .venv
