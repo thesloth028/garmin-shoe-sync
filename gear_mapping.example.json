@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "_instructions": "This is an example only. On first run the script creates gear_mapping.json with suggestions from your Garmin account. Review every garmin_name and gear_uuid. Set gear_uuid to null to skip a shoe, then run the script again.",
+  "mappings": {
+    "Nike Pegasus 40": {
+      "garmin_name": "Nike Pegasus 40",
+      "gear_uuid": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "Hoka Mach X": {
+      "garmin_name": "HOKA Mach X",
+      "gear_uuid": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "Skip this pair": {
+      "garmin_name": null,
+      "gear_uuid": null
+    }
+  }
+}

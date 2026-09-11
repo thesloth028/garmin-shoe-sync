@@ -1,0 +1,36 @@
+# Secrets — never commit credentials
+.env
+.env.*
+!.env.example
+
+# Personal data generated on your machine
+activities.csv
+*.csv
+gear_mapping.json
+
+# Garmin session tokens if stored inside this folder
+.garminconnect/
+tokens/
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# Editors and OS
+.cursor/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
