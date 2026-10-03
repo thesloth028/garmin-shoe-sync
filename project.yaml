@@ -1,0 +1,40 @@
+# Project manifest: read by brain/scripts/build_maps.py to draw this project's map.
+# Format: brain/schemas/project.schema.json. Env vars are NAMES only, never values.
+# No hostnames, IPs or secrets here. Update it in the same PR when you add a
+# service, component, env var or schedule.
+schema_version: 1
+name: garmin-shoe-sync
+purpose: Attaches the shoes worn on past Strava runs to the matching activities in Garmin Connect
+status: active
+repo: thesloth028/garmin-shoe-sync
+host: Local machine (run by hand; no server, no schedule)
+stack: [python 3.10+, pandas, garminconnect, python-dotenv]
+services:
+  - id: garmin-connect
+    use: Reads gear and running activities, links shoes (unofficial garminconnect library)
+    env: [GARMIN_EMAIL, GARMIN_PASSWORD, GARMINTOKENS]
+  - id: strava
+    use: Source data via a manual account export (activities.csv); no API calls
+components:
+  - id: auth
+    does: Logs into Garmin (MFA prompt if needed) and caches the session token
+    path: sync_shoes.py
+    talks_to: [garmin-connect]
+  - id: mapping
+    does: Suggests and loads the reviewed Strava-to-Garmin shoe map (gear_mapping.json)
+    path: sync_shoes.py
+    talks_to: [garmin-connect]
+  - id: matcher
+    does: Matches Strava runs to Garmin runs by start time, then date, then distance
+    path: sync_shoes.py
+    talks_to: [strava, garmin-connect]
+  - id: linker
+    does: Links (or removes duplicate) gear on matched activities; --dry-run prints only
+    path: sync_shoes.py
+    talks_to: [matcher, mapping, garmin-connect]
+entrypoints:
+  - python sync_shoes.py --dry-run --strava-timezone <IANA zone>
+risks:
+  - Uses an unofficial Garmin API; it can break or rate-limit (HTTP 429) without notice
+  - Live runs write to the real Garmin account; dry-run first
+  - Public repo; .env, activities.csv, gear_mapping.json and ~/.garminconnect must stay gitignored
