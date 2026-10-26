@@ -1,0 +1,65 @@
+# generated from thesloth028/brain@790c4c3 .github/workflows/auto-open.yml (brain system/repo-template/README.md).
+# A public repo can't call a workflow in a private repo, so this is a copy. Change it in brain, not here.
+# Reusable: open a PR to the default branch when a branch is pushed and has none (system/merge-process.md).
+# Each repo calls it from its merge-process.yml on push. It checks out nothing and runs no repo code.
+# capture/<date> → "Inbox captures <date>"; rules/proposed → "Rules changes"; otherwise the latest
+# commit's subject. Work branches open as drafts (the review loop marks them ready).
+# Note: a PR opened with GITHUB_TOKEN starts no pull_request workflows; each repo's CI also runs on
+# push, so its checks are on the PR head anyway.
+name: auto-open
+
+on:
+  push:
+    branches-ignore: [main]
+
+permissions: {}
+
+jobs:
+  open:
+    if: >-
+      github.ref_type == 'branch' && !github.event.deleted
+      && github.ref_name != github.event.repository.default_branch
+      && github.ref_name != 'chore/nightly-maps'
+      && !startsWith(github.ref_name, 'dependabot/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    concurrency:
+      group: auto-open-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: open the PR unless one is open
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          BASE: ${{ github.event.repository.default_branch }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -n "$(gh pr list -R "$REPO" --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            echo "a PR is already open for $BRANCH"; exit 0
+          fi
+          ahead=$(gh api "repos/$REPO/compare/$BASE...$SHA" --jq .ahead_by)
+          if [ "$ahead" -eq 0 ]; then echo "$BRANCH has no commits ahead of $BASE"; exit 0; fi
+          msg=$(gh api "repos/$REPO/commits/$SHA" --jq .commit.message)
+          draft=(--draft)
+          case "$BRANCH" in
+            capture/*) title="Inbox captures ${BRANCH#capture/}"; draft=() ;;
+            rules/proposed) title="Rules changes"; draft=() ;;
+            *) title=$(printf '%s\n' "$msg" | head -n 1) ;;
+          esac
+          {
+            printf '%s\n' "$msg" | tail -n +2
+            printf '\nOpened by the auto-open workflow for a push to `%s` (brain system/merge-process.md).\n' "$BRANCH"
+          } > "$RUNNER_TEMP/body.md"
+          if out=$(gh pr create -R "$REPO" --base "$BASE" --head "$BRANCH" --title "$title" \
+                   --body-file "$RUNNER_TEMP/body.md" "${draft[@]}" 2>&1); then
+            echo "$out"
+          elif printf '%s' "$out" | grep -qi "already exists"; then
+            echo "a PR already exists for $BRANCH"
+          else
+            echo "$out" >&2; exit 1
+          fi
